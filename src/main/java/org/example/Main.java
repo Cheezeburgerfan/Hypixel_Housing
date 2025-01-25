@@ -26,12 +26,13 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
 public class Main {
-	static int limit = 104982;
-	static int current = 105286;
-	static String APIKey = "d5bf04be-04f2-49f7-b64a-0cb7a46587fe";
+	static int earliest = 104982;
+	static int limit = 104983;
+	static int current = 105300;
+	static String APIKey = "8faf56f4-5524-4c56-b1ae-c2291800ba23";
 
     public static void main(String[] args) throws ExecutionException, InterruptedException {
-        ArrayList<ArrayList<String>> res = getPlayers("9e89775f-82de-4e6c-9c2c-4aac88be1956", 50);
+        ArrayList<ArrayList<String>> res = getPlayers("046dfe72-fbaf-4cc3-b7c4-0bdb9408f4a9", 50);
 		System.out.println();
 		Thread.sleep(1000);
 		printList(res);
@@ -47,6 +48,7 @@ public class Main {
 		HashMap<String, Integer> Dict = new HashMap<String, Integer>(1000);
 		ArrayList<ArrayList<String>> res = new ArrayList<ArrayList<String>>(64);
 		int[] pointers = new int[64];
+		int pointer = 63;
 		for(int i = 0; i < 63; i++) {
 			pointers[i] = -1;
 		}
@@ -58,7 +60,6 @@ public class Main {
 		PlayerReply.Player player;
 		res.add(new ArrayList<String>(1));
 		res.get(63).add(initial);
-		pointers[0] = 63;
 		Dict.put(initial, 0);
 		int j = 0;
 		while(
@@ -67,22 +68,22 @@ public class Main {
 		) {
 			boolean goBack = true;
 			System.out.print("-");
-			System.out.println("Calling " + pointers[0] + " at index " + pointers[pointers[0]] + ": " + res.get(pointers[0]).get(pointers[pointers[0]]));
-			apiReply = hypixelAPI.getPlayerByUuid(res.get(pointers[0]).get(pointers[pointers[0]])).get();
+			System.out.println("Calling " + pointer + " at index " + pointers[pointer] + ": " + res.get(pointer).get(pointers[pointer]));
+			apiReply = hypixelAPI.getPlayerByUuid(res.get(pointer).get(pointers[pointer])).get();
 			player = apiReply.getPlayer();
 			if (!player.exists()) {
 				System.err.println("Player not found!");
 				return null;
 			}
-			pointers[pointers[0]]+=1;
-			if(pointers[0] == 63) {
-				pointers[0] = 0;
+			pointers[pointer]+=1;
+			if(pointer == 63) {
+				pointer = 0;
 			}
 			JsonObject housingMeta = player.getObjectProperty("housingMeta");
 			for (String key : housingMeta.keySet()) {
-				if(key.contains("given") && Integer.parseInt(key.substring(14)) < limit) {
+				if(key.contains("given") && Integer.parseInt(key.substring(14)) <= earliest) {
 					int week = Integer.parseInt(key.substring(14));
-					if(limit - week == 45) {
+					if(week == 104937) {
 						continue;
 					}
 					JsonArray thing = housingMeta.getAsJsonArray(key);
@@ -96,9 +97,6 @@ public class Main {
 						//if this uuid was already seen, check if this time its earlier week, if it is update the dict and res
 						else if (Dict.get(suuid.toString()) != null && Dict.get(suuid.toString()) < (limit - week) && Dict.get(suuid)!=0) {
 							res.get(limit - week).add(suuid.toString());
-							//System.out.println(suuid);
-							//System.out.println(Dict.get(suuid));
-							//printList(res);
 							res.get(Dict.get(suuid.toString())).remove(suuid.toString());
 							Dict.replace(suuid.toString(), limit - week);
 						//if its not an earlier week, just continue
@@ -109,11 +107,12 @@ public class Main {
 							if (res.get(limit - week) == null) {
 								res.set(limit - week, new ArrayList<String>(200));
 								pointers[limit - week] = 0;
+								System.out.println("created list at " + pointer);
 							}
 							res.get(limit - week).add(suuid.toString());
 							Dict.put(suuid, limit - week);
-							if(limit - week > pointers[0] && limit - week != 45) {
-								pointers[0] = limit - week;
+							if(limit - week > pointer && week != 104937) {
+								pointer = limit - week;
 								goBack = false;
 							}
 						}
@@ -132,9 +131,9 @@ public class Main {
 				**/
 			}
 			if(goBack) {
-				for(int i = pointers[0]; i > 0; i--) {
+				for(int i = pointer; i > 0; i--) {
 					if(pointers[i] > -1 && res.get(i).size() > pointers[i]) {
-						pointers[0] = i;
+						pointer = i;
 						break;
 					}
 				}
